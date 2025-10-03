@@ -1,0 +1,305 @@
+{
+  "mostrar_marcador": true,
+  "equipo_local": "UP MEX",
+  "equipo_visita": "AN\u00c1HUAC NTE",
+  "marcador_local": 1,
+  "marcador_visita": 1,
+  "animacion": "slideInDown",
+  "fuente": "Anzeigen Grotesk",
+  "posiciones": {
+    "normal": {
+      "marcador_local": {
+        "top": 35,
+        "left": 190,
+        "size": 36,
+        "font": "Arial"
+      },
+      "equipo_local": {
+        "top": 10,
+        "left": 90,
+        "size": 36,
+        "font": "Helvetica"
+      },
+      "equipo_visita": {
+        "top": 80,
+        "left": 310,
+        "size": 36,
+        "font": "Arial"
+      },
+      "marcador_visita": {
+        "top": 35,
+        "left": 300,
+        "size": 96,
+        "font": "Arial"
+      },
+      "reloj": {
+        "top": 110,
+        "left": 250,
+        "size": 32,
+        "font": "Arial"
+      }
+    },
+    "gol_local": {
+      "equipo_local": {
+        "top": 80,
+        "left": 90,
+        "size": 36,
+        "font": "Arial"
+      },
+      "marcador_local": {
+        "top": 35,
+        "left": 190,
+        "size": 96,
+        "font": "Arial"
+      },
+      "equipo_visita": {
+        "top": 80,
+        "left": 310,
+        "size": 36,
+        "font": "Arial"
+      },
+      "marcador_visita": {
+        "top": 35,
+        "left": 300,
+        "size": 96,
+        "font": "Arial"
+      },
+      "reloj": {
+        "top": 110,
+        "left": 250,
+        "size": 32,
+        "font": "Arial"
+      }
+    },
+    "gol_visita": {
+      "equipo_local": {
+        "top": 80,
+        "left": 90,
+        "size": 36,
+        "font": "Arial"
+      },
+      "marcador_local": {
+        "top": 35,
+        "left": 190,
+        "size": 96,
+        "font": "Arial"
+      },
+      "equipo_visita": {
+        "top": 80,
+        "left": 310,
+        "size": 36,
+        "font": "Arial"
+      },
+      "marcador_visita": {
+        "top": 35,
+        "left": 300,
+        "size": 96,
+        "font": "Arial"
+      },
+      "reloj": {
+        "top": 110,
+        "left": 250,
+        "size": 32,
+        "font": "Arial"
+      }
+    },
+    "cambio_local": {
+      "equipo_local": {
+        "top": 80,
+        "left": 90,
+        "size": 36,
+        "font": "Arial"
+      },
+      "marcador_local": {
+        "top": 35,
+        "left": 190,
+        "size": 96,
+        "font": "Arial"
+      },
+      "equipo_visita": {
+        "top": 80,
+        "left": 310,
+        "size": 36,
+        "font": "Arial"
+      },
+      "marcador_visita": {
+        "top": 35,
+        "left": 300,
+        "size": 96,
+        "font": "Arial"
+      },
+      "reloj": {
+        "top": 110,
+        "left": 250,
+        "size": 32,
+        "font": "Arial"
+      }
+    },
+    "cambio_visita": {
+      "equipo_local": {
+        "top": 80,
+        "left": 90,
+        "size": 36,
+        "font": "Arial"
+      },
+      "marcador_local": {
+        "top": 35,
+        "left": 190,
+        "size": 96,
+        "font": "Arial"
+      },
+      "equipo_visita": {
+        "top": 80,
+        "left": 310,
+        "size": 36,
+        "font": "Arial"
+      },
+      "marcador_visita": {
+        "top": 35,
+        "left": 300,
+        "size": 96,
+        "font": "Arial"
+      },
+      "reloj": {
+        "top": 110,
+        "left": 250,
+        "size": 32,
+        "font": "Arial"
+      }
+    },
+    "tarjeta_local": {
+      "equipo_local": {
+        "top": 80,
+        "left": 90,
+        "size": 36,
+        "font": "Arial"
+      },
+      "marcador_local": {
+        "top": 35,
+        "left": 190,
+        "size": 96,
+        "font": "Arial"
+      },
+      "equipo_visita": {
+        "top": 80,
+        "left": 310,
+        "size": 36,
+        "font": "Arial"
+      },
+      "marcador_visita": {
+        "top": 35,
+        "left": 300,
+        "size": 96,
+        "font": "Arial"
+      },
+      "reloj": {
+        "top": 110,
+        "left": 250,
+        "size": 32,
+        "font": "Arial"
+      }
+    },
+    "tarjeta_visita": {
+      "equipo_local": {
+        "top": 80,
+        "left": 90,
+        "size": 36,
+        "font": "Arial"
+      },
+      "marcador_local": {
+        "top": 35,
+        "left": 190,
+        "size": 96,
+        "font": "Arial"
+      },
+      "equipo_visita": {
+        "top": 80,
+        "left": 310,
+        "size": 36,
+        "font": "Arial"
+      },
+      "marcador_visita": {
+        "top": 35,
+        "left": 300,
+        "size": 96,
+        "font": "Arial"
+      },
+      "reloj": {
+        "top": 110,
+        "left": 250,
+        "size": 32,
+        "font": "Arial"
+      }
+    },
+    "extra": {
+      "equipo_local": {
+        "top": 80,
+        "left": 90,
+        "size": 36,
+        "font": "Arial"
+      },
+      "marcador_local": {
+        "top": 35,
+        "left": 190,
+        "size": 96,
+        "font": "Arial"
+      },
+      "equipo_visita": {
+        "top": 80,
+        "left": 310,
+        "size": 36,
+        "font": "Arial"
+      },
+      "marcador_visita": {
+        "top": 35,
+        "left": 300,
+        "size": 96,
+        "font": "Arial"
+      },
+      "reloj": {
+        "top": 110,
+        "left": 250,
+        "size": 32,
+        "font": "Arial"
+      }
+    },
+    "stats": {
+      "equipo_local": {
+        "top": 80,
+        "left": 90,
+        "size": 36,
+        "font": "Arial"
+      },
+      "marcador_local": {
+        "top": 35,
+        "left": 190,
+        "size": 96,
+        "font": "Arial"
+      },
+      "equipo_visita": {
+        "top": 80,
+        "left": 310,
+        "size": 36,
+        "font": "Arial"
+      },
+      "marcador_visita": {
+        "top": 35,
+        "left": 300,
+        "size": 96,
+        "font": "Arial"
+      },
+      "reloj": {
+        "top": 110,
+        "left": 250,
+        "size": 32,
+        "font": "Arial"
+      }
+    }
+  },
+  "brand_logo": "../logo.png",
+  "logo_local": "../Copia de panteras-up.png",
+  "logo_visita": "../Copia de leones-anahuac.png",
+  "running": true,
+  "start_epoch_ms": 1759461428041,
+  "elapsed_ms": 0
+}

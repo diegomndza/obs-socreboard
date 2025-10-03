@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preload" as="image" href="../logo.png"/>
+<link rel="preload" as="image" href="../stats.png"/>
+<title>Marcador</title>
+<style>
+:root{
+  --bug-scale: 1.00;
+  /* MÁS ancho para que quepan los nombres completos */
+  --mid-w: 780px;
+  --mid-w-expanded: 1000px;
+  /* columna izquierda más ancha */
+  --left-w: 280px;
+  --right-w: 28px;
+  --canvas-width: 1920px;
+  --canvas-height: 1080px;
+  --scorebug-top: 24px;
+  --scorebug-left: 24px;
+  --color-local: #FF0000;
+  --color-visita: #FF9800;
+  --color-text-local: #ffffff;
+  --color-text-visita: #000000;
+}
+html,body{ margin:0; padding:0; width:var(--canvas-width); height:var(--canvas-height);
+  background-color:rgba(0,0,0,0)!important; overflow:hidden; font-family:'Inter','SF Pro Display','Segoe UI',Arial,sans-serif; color:#111; }
+.stage{ position:relative; width:var(--canvas-width); height:var(--canvas-height); }
+#bug-wrap{ position:absolute; top:var(--scorebug-top); left:var(--scorebug-left); transform:scale(var(--bug-scale)); transform-origin:top left;
+  filter:drop-shadow(0 12px 28px rgba(0,0,0,.35)); }
+#ea-scorebug{ display:flex; align-items:stretch; transition:width .70s cubic-bezier(.2,.7,.2,1); }
+
+/* IZQUIERDA */
+.ea-left{ display:flex; flex-direction:column; width:var(--left-w); }
+.ea-tri,.ea-comp,.ea-time,.time-extra{ width:var(--left-w); box-sizing:border-box; }
+.ea-tri{ height:110px; background:#111; border-top-left-radius:10px; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.ea-tri img{ max-width: calc(var(--left-w) - 20px); max-height: 96px; width:auto; height:auto; object-fit:contain; }
+.ea-comp{ background:#111; color:#fff; font-weight:900; font-size:28px; letter-spacing:.7px; padding:16px 18px; border-bottom:1px solid rgba(255,255,255,.08);}
+.ea-time{ background:#2FE05B; color:#000; font-weight:900; font-size:64px; padding:18px 24px; line-height:1; display:flex; align-items:center; justify-content:center; }
+.time-extra{ background:#2FE05B; color:#000; font-weight:900; font-size:56px; line-height:1; padding:0 18px; overflow:hidden; max-height:0; width:var(--left-w);
+  transition:max-height .70s cubic-bezier(.2,.7,.2,1), padding .70s cubic-bezier(.2,.7,.2,1); border-bottom-left-radius:10px; }
+.time-extra.show{ max-height:56px; padding:10px 18px; }
+
+/* EXPANDER */
+#bug-outer{ display:inline-block; width:auto; }
+#expander{ width:100%; background:#fff; color:#111; border-radius:0 0 10px 10px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,.20); max-height:0; transition:max-height .70s cubic-bezier(.2,.7,.2,1); will-change:max-height; }
+#expander.open{ max-height:460px; }
+#expander .panel{ background:#fff; color:#111; }
+
+/* CENTRO */
+.ea-mid{ background:#fff; color:#111; display:flex; flex-direction:column; padding:20px 260px 20px 24px; row-gap:16px; width:var(--mid-w); transition:width .70s cubic-bezier(.2,.7,.2,1); box-sizing:border-box; }
+#ea-scorebug.expanded .ea-mid{ width:var(--mid-w-expanded); }
+.ea-mid .row{ display:grid; grid-template-columns: 180px 48px 1fr minmax(160px, auto); align-items:center; column-gap:22px; }
+.ea-mid .name{ font-weight:900; font-size:56px; letter-spacing:.2px; white-space:nowrap; overflow:hidden; text-overflow:clip; min-width:520px; }
+.ea-mid .score{ font-weight:900; font-size:86px; text-align:left; min-width:160px; }
+.crest{ width:180px; height:180px; object-fit:contain; display:block; }
+.reds{ display:flex; gap:4px; justify-content:flex-start; }
+.rc{ width:22px; height:28px; background:#D32F2F; border-radius:3px; }
+
+/* DERECHA */
+.ea-right{ display:flex; flex-direction:column; width: var(--right-w); min-width: var(--right-w); border-top-right-radius:10px; border-bottom-right-radius:10px; overflow:hidden; }
+.right-row{ flex:1 1 auto; }
+.right-row.local{ background: var(--color-local); }
+.right-row.visita{ background: var(--color-visita); }
+
+/* Paneles grandes */
+.panel{ background:rgba(0,0,0,.92); border-radius:14px; padding:22px 24px; display:flex; align-items:center; gap:18px; box-shadow:0 10px 24px rgba(0,0,0,.35); margin:14px; font-size:22px; }
+.panel .chip{ font-weight:900; padding:10px 16px; border-radius:10px; letter-spacing:.6px; text-transform:uppercase; }
+.panel .line{ display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+.team-long{ padding:6px 12px; border-radius:8px; font-weight:900; }
+.score-big{ font-weight:900; font-size:86px; }
+.player-big{ font-weight:800; font-size:44px; }
+.num-big{ font-weight:900; font-size:40px; min-width:48px; text-align:right; }
+.pname-big{ font-weight:800; font-size:40px; }
+
+/* STATS */
+.stats-icon{ width:144px; height:144px; object-fit:contain; display:inline-block; }
+#stats .stats-track{ flex:1 1 auto; height:36px; border-radius:12px; overflow:hidden; display:flex; margin:12px 0; background:#fff; border:1px solid rgba(0,0,0,.08); }
+#stats .seg{ display:flex; align-items:center; justify-content:center; font-weight:900; line-height:1; font-size:22px; }
+#stats .seg.local{ background: var(--color-local); color: var(--color-text-local); }
+#stats .seg.visita{ background: var(--color-visita); color: var(--color-text-visita); }
+.stats-wrap{ display:flex; align-items:center; gap:18px; }
+
+/* Triángulos cambio */
+.tri{ width:0; height:0; }
+.tri-left{ border-top:10px solid transparent; border-bottom:10px solid transparent; border-right:16px solid #00e676; }
+.tri-right{ border-top:10px solid transparent; border-bottom:10px solid transparent; border-left:16px solid #ff5252; }
+.num-big.out{ color:#ff5252; }
+
+@keyframes slideDownIn{ from{opacity:0; transform:translateY(-20px)} to{opacity:1; transform:translateY(0)} }
+.slide-down-in{ animation: slideDownIn .6s cubic-bezier(.25,.46,.45,.94) forwards; }
+</style>
+<script>
+const $ = (id) => document.getElementById(id);
+
+// Reloj en automático
+let lastState = null;
+function fmtClock(ms){ const t=Math.max(0,Math.floor(ms/1000)); const m=Math.floor(t/60), s=t%60; return (m<10?'0':'')+m+':' + (s<10?'0':'')+s; }
+function paintClock(){
+  if(!lastState){ requestAnimationFrame(paintClock); return; }
+  const base = (lastState.base_ms||0) + (lastState.elapsed_ms||0);
+  const live = lastState.running ? Math.max(0, Date.now() - (lastState.start_epoch_ms||0)) : 0;
+  const clk=$('ea-clock'); if(clk) clk.textContent = fmtClock(base + live);
+  requestAnimationFrame(paintClock);
+}
+
+function render(state){
+  // guardar estado y dejar que paintClock pinte el reloj fluido
+  lastState = state;
+
+  // scores y nombres
+  const sl=$('scoreL'); if(sl) sl.textContent=state.scoreL;
+  const sr=$('scoreR'); if(sr) sr.textContent=state.scoreR;
+  const tl=$('teamL'); if(tl) tl.textContent=state.teamL||'';
+  const tr=$('teamR'); if(tr) tr.textContent=state.teamR||'';
+
+  // tarjetas rojas persistentes
+  const rL = document.getElementById('redsL');
+  const rR = document.getElementById('redsR');
+  if (rL) { rL.innerHTML = ''.padStart((state.redL||0), '•').split('•').slice(1).map(()=>'<span class="rc"></span>').join(''); }
+  if (rR) { rR.innerHTML = ''.padStart((state.redR||0), '•').split('•').slice(1).map(()=>'<span class="rc"></span>').join(''); }
+
+  // tiempo añadido (extra)
+  const extraBox = document.getElementById('time-extra');
+  if (extraBox){ const txt = state.extra ? `+${state.extra}'` : ''; extraBox.textContent = txt; extraBox.classList.toggle('show', !!state.extra); }
+
+  // overlay grande y expansión
+  const exp = document.getElementById('expander');
+  const expInner = document.getElementById('expander-inner');
+  const htmlStr = state.overlay_html || '';
+  if (exp && expInner && expInner.dataset.html !== htmlStr) {
+    expInner.innerHTML = htmlStr; expInner.dataset.html = htmlStr;
+  }
+  const open = !!(state.overlay_type);
+  if (exp) exp.classList.toggle('open', open);
+  const bug = document.getElementById('ea-scorebug'); if (bug) bug.classList.toggle('expanded', open);
+}
+
+async function tick(){
+  try{ const res=await fetch('estado.json?ts='+Date.now()); if(!res.ok) return; const state=await res.json(); render(state); }
+  catch(e){ console.error(e); }
+}
+window.addEventListener('DOMContentLoaded', ()=>{ tick(); setInterval(tick, 250); requestAnimationFrame(paintClock); });
+</script>
+</head>
+<body>
+<div class="stage">
+  <div id="bug-wrap">
+    <div id="bug-outer">
+      <div id="ea-scorebug">
+        <div class="ea-left">
+          <div class="ea-tri"><img id="brand" src="../logo.png" alt="Brand" onerror="this.style.display='none'"/></div>
+          <div class="ea-comp">CONADEIP</div>
+          <div class="ea-time"><span id="ea-clock">20:31</span></div>
+          <div id="time-extra" class="time-extra"></div>
+        </div>
+        <div class="ea-mid">
+          <div class="row">
+            <img class='crest' src='../Copia de panteras-up.png' alt='' onerror="this.style.display='none'"/>
+            <span class="reds" id="redsL"></span>
+            <span class="name" id="teamL">UP MEX</span>
+            <span class="score" id="scoreL">0</span>
+          </div>
+          <div class="row">
+            <img class='crest' src='../Copia de leones-anahuac.png' alt='' onerror="this.style.display='none'"/>
+            <span class="reds" id="redsR"></span>
+            <span class="name" id="teamR">ANÁHUAC NTE</span>
+            <span class="score" id="scoreR">0</span>
+          </div>
+        </div>
+        <div class="ea-right">
+          <div class="right-row local"></div>
+          <div class="right-row visita"></div>
+        </div>
+      </div>
+      <div id="expander"><div id="expander-inner"></div></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
