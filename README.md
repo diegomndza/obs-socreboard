@@ -1,12 +1,4 @@
 # obs-socreboard
-This extensive Python script defines a PyQt6 application for controlling a **football (soccer) scoreboard overlay**, typically used for live broadcasts or streaming (often called a "bug" or "lower third"). It manages team data, scores, a match clock, and various on-screen event overlays (goals, substitutions, cards, and statistics).
-
-Here is an explanation of the program's purpose and functionality, structured as a documentation overview, suitable for a GitHub repository in English:
-
-***
-
-## Soccer Scoreboard Controller (PyQt6/HTML)
-
 This application serves as a **graphical user interface (GUI) controller** for a live, data-driven soccer scoreboard overlay (often referred to as a "bug" or "lower third"). The program manages match state—including time, scores, and event data—and outputs an **HTML file** (`TXT/salida.html`) and a **JSON state file** (`TXT/estado.json`). These files are intended to be read by external tools (such as OBS Studio, vMix, or a web browser) via a simple HTTP server to display the dynamic, real-time scoreboard in a broadcast environment.
 
 ### ⚽ Main Purpose
