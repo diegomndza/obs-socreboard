@@ -1,9 +1,9 @@
 {
   "mostrar_marcador": true,
-  "equipo_local": "UP MEX",
+  "equipo_local": "UP AGS",
   "equipo_visita": "AN\u00c1HUAC NTE",
   "marcador_local": 1,
-  "marcador_visita": 1,
+  "marcador_visita": 0,
   "animacion": "slideInDown",
   "fuente": "Anzeigen Grotesk",
   "posiciones": {
@@ -296,10 +296,13 @@
       }
     }
   },
-  "brand_logo": "../logo.png",
+  "brand_logo": "../stats.png",
   "logo_local": "../Copia de panteras-up.png",
   "logo_visita": "../Copia de leones-anahuac.png",
   "running": true,
-  "start_epoch_ms": 1759461428041,
-  "elapsed_ms": 0
+  "start_epoch_ms": 1759780661130,
+  "elapsed_ms": 1470,
+  "marcador_visible": true,
+  "competition_title": "CONADEIP",
+  "competition_name": "CONADEIP"
 }

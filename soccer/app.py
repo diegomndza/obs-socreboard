@@ -276,6 +276,16 @@ class Marcador(QWidget):
         ]:
             b = QPushButton(txt); b.clicked.connect(func); control_layout.addWidget(b)
 
+        # Botón para copiar HTML al portapapeles
+        self.btn_copy_html = QPushButton("Copiar HTML")
+        self.btn_copy_html.clicked.connect(self.copy_html)
+        control_layout.addWidget(self.btn_copy_html)
+
+        # Botón para copiar la URL del marcador (link utilizado en OBS)
+        self.btn_copy_link = QPushButton("Copiar URL")
+        self.btn_copy_link.clicked.connect(self.copy_link)
+        control_layout.addWidget(self.btn_copy_link)
+
         layout.addLayout(equipos_layout)
         layout.addLayout(logos_layout)
         layout.addLayout(marcador_layout)
@@ -285,6 +295,7 @@ class Marcador(QWidget):
 
         # HTTP
         self.http_proc = None
+        self.http_port = None  # puerto utilizado por el servidor HTTP
         def _port_free(port:int)->bool:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.settimeout(0.2)
@@ -292,17 +303,30 @@ class Marcador(QWidget):
         self._port_free = _port_free
 
         def _start_http_server(port:int=3333):
+            """
+            Inicia un servidor HTTP en el primer puerto libre a partir de `port`.
+            Guarda el puerto elegido en `self.http_port` y muestra la URL completa.
+            """
             try:
-                if not self._port_free(port):
-                    self.notificar(f"Servidor HTTP activo en {port}")
-                    return
-                self.http_proc = subprocess.Popen(
-                    [sys.executable, "-m", "http.server", str(port)],
-                    cwd=BASE_DIR,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL
-                )
-                self.notificar(f"HTTP listo: http://localhost:{port}/TXT/salida.html", 3500)
+                p = port
+                started = False
+                for _ in range(10):
+                    if self._port_free(p):
+                        # Iniciar el servidor en el puerto disponible
+                        self.http_proc = subprocess.Popen(
+                            [sys.executable, "-m", "http.server", str(p)],
+                            cwd=BASE_DIR,
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL
+                        )
+                        self.http_port = p
+                        self.notificar(f"HTTP listo: http://localhost:{p}/TXT/salida.html", 3500)
+                        started = True
+                        break
+                    p += 1
+                if not started:
+                    # Todos los puertos probados están ocupados
+                    self.notificar("No se pudo iniciar el servidor HTTP (puertos ocupados)", 4000)
             except Exception as e:
                 print("[http.server]", e)
         self._start_http_server = _start_http_server
@@ -714,18 +738,19 @@ class Marcador(QWidget):
                 lv = int(d.get("local", 0)); vv = int(d.get("visita", 0))
                 total = max(lv + vv, 1)
                 pct_l = max(0.0, min(1.0, lv / total)); pct_v = 1.0 - pct_l
+
                 overlay_html = f"""
-      <div id="stats" class="panel panel-lg slide-down-in">
-        <div class="line" style="gap:18px; flex-wrap:wrap; align-items:center;">
-          <span class="chip" style="background:#eee;">{titulo}</span>
+      <div id="stats" class="panel panel-lg">
+        <div class="stats-content">
+            <div class="line" style="gap:18px; flex-wrap:wrap; align-items:center;">
+              <span class="chip" style="background:#eee;">{titulo}</span>
+            </div>
+            <div class="stats-track">
+              <div class="seg local" style="width:{pct_l*100:.2f}%">{lv}</div>
+              <div class="seg visita" style="width:{pct_v*100:.2f}%">{vv}</div>
+            </div>
         </div>
-        <div class="stats-wrap">
-          <div class="stats-track">
-            <div class="seg local" style="width:{pct_l*100:.2f}%">{lv}</div>
-            <div class="seg visita" style="width:{pct_v*100:.2f}%">{vv}</div>
-          </div>
-          <img class='stats-icon' src='{stats_png_rel}' alt='stats' onerror="this.style.display='none'"/>
-        </div>
+        <img class='stats-icon' src='{stats_png_rel}' alt='stats' onerror="this.style.display='none'"/>
       </div>"""
             elif self.overlay.get("type") == "goal":
                 d = self.overlay.get("data", {})
@@ -742,7 +767,7 @@ class Marcador(QWidget):
                     if len(parts) == 2 and parts[0].isdigit():
                         jnum, jname = parts[0], parts[1]
                 overlay_html = f"""
-      <div id="goal" class="panel panel-lg slide-down-in">
+      <div id="goal" class="panel panel-lg">
         <div class="line">
           <span class="chip" style="background:{bgc};color:{tc}">GOL</span>
           <span class="team-long" style="background:{bgc};color:{tc}">{txt_team}</span>
@@ -758,7 +783,7 @@ class Marcador(QWidget):
                 chip = "#FBC02D" if tipo == "amarilla" else "#D32F2F"
                 txt_side = "LOCAL" if is_local else "VISITA"
                 overlay_html = f"""
-      <div id="card" class="panel panel-lg slide-down-in">
+      <div id="card" class="panel panel-lg">
         <div class="line">
           <span class="chip" style="background:{chip};color:{'#000' if tipo=='amarilla' else '#fff'}">{tipo.upper()}</span>
           <span class="team-long">{txt_side}</span>
@@ -777,7 +802,7 @@ class Marcador(QWidget):
                 num_in, name_in = split_player(entra_txt)
                 num_out, name_out = split_player(sale_txt)
                 overlay_html = f"""
-      <div id="sub" class="panel panel-lg slide-down-in">
+      <div id="sub" class="panel panel-lg">
         <div class="line">
           <span class="chip" style="background:#00e676;">CAMBIO</span>
           <span class="tri tri-left"></span><span class="num-big">{num_in}</span><span class="pname-big">{name_in}</span>
@@ -786,50 +811,28 @@ class Marcador(QWidget):
         </div>
       </div>"""
 
-            # Estado para JS
-            try:
-                state = {
-                    "teamL": self.equipo_local.currentText(),
-                    "teamR": self.equipo_visita.currentText(),
-                    "colorL": color_local,
-                    "colorR": color_visita,
-                    "scoreL": int(self.marc_local.text()),
-                    "scoreR": int(self.marc_visita.text()),
-                    "clock": reloj_txt,
-                    "extra": int(self.tiempo_anadido_min) if (self.mostrar_extra and self.tiempo_anadido_min>0) else 0,
-                    "overlay_html": overlay_html,
-                    "overlay_type": (self.overlay.get("type") or ""),
-                    "redL": int(self.red_local),
-                    "redR": int(self.red_visita),
-                    "flash": self.flash,
-                    "running": bool(self.running),
-                    "start_epoch_ms": int(self.start_epoch_ms),
-                    "elapsed_ms": int(self.elapsed_ms),
-                    "base_ms": int(self.base_minutos * 60 * 1000),
-                }
-                with open(OUTPUT_STATE,'w',encoding='utf-8') as sf:
-                    json.dump(state, sf, ensure_ascii=False)
-            except Exception as e:
-                print('[estado.json] error:', e)
+            # -------- HTML (sin JS auto-refresh) --------
+            expanded_class = "expanded" if overlay_html else ""
+            expander_class = "open" if overlay_html else ""
 
-            # -------- HTML --------
             html = """<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
 <link rel="preload" as="image" href="%%BRAND%%"/>
 <link rel="preload" as="image" href="%%STATSPNG%%"/>
 <title>Marcador</title>
 <style>
 :root{
   --bug-scale: 1.00;
-  /* MÁS ancho para que quepan los nombres completos */
-  --mid-w: 780px;
-  --mid-w-expanded: 1000px;
-  /* columna izquierda más ancha */
-  --left-w: 280px;
-  --right-w: 28px;
+  --mid-w: 950px;
+  --mid-w-expanded: 1250px;
+  --left-w: 300px;
+  --right-w: 36px;
   --canvas-width: 1920px;
   --canvas-height: 1080px;
   --scorebug-top: 24px;
@@ -859,19 +862,43 @@ html,body{ margin:0; padding:0; width:var(--canvas-width); height:var(--canvas-h
 
 /* EXPANDER */
 #bug-outer{ display:inline-block; width:auto; }
-#expander{ width:100%; background:#fff; color:#111; border-radius:0 0 10px 10px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,.20); max-height:0; transition:max-height .70s cubic-bezier(.2,.7,.2,1); will-change:max-height; }
+#expander{
+  width:100%;
+  background:#fff; color:#111;
+  border-radius:0 0 10px 10px;
+  overflow:hidden;
+  box-shadow:0 10px 24px rgba(0,0,0,.20);
+  max-height:0;
+  transition:max-height .45s ease;
+  will-change:max-height;
+}
 #expander.open{ max-height:460px; }
+/* El panel usa el ancho del bug expandido */
+.panel-lg{ width: calc(var(--left-w) + var(--mid-w-expanded) + var(--right-w)); max-width: calc(var(--left-w) + var(--mid-w-expanded) + var(--right-w)); padding: 22px 24px; } 
 #expander .panel{ background:#fff; color:#111; }
 
 /* CENTRO */
-.ea-mid{ background:#fff; color:#111; display:flex; flex-direction:column; padding:20px 260px 20px 24px; row-gap:16px; width:var(--mid-w); transition:width .70s cubic-bezier(.2,.7,.2,1); box-sizing:border-box; }
+.ea-mid{ background:#fff; color:#111; display:flex; flex-direction:column; padding:20px 24px; row-gap:16px; 
+  width:var(--mid-w); transition:width .70s cubic-bezier(.2,.7,.2,1); box-sizing:border-box; 
+  border-top-right-radius: 0; border-bottom-right-radius: 0; } 
+
 #ea-scorebug.expanded .ea-mid{ width:var(--mid-w-expanded); }
-.ea-mid .row{ display:grid; grid-template-columns: 180px 48px 1fr minmax(160px, auto); align-items:center; column-gap:22px; }
-.ea-mid .name{ font-weight:900; font-size:56px; letter-spacing:.2px; white-space:nowrap; overflow:hidden; text-overflow:clip; min-width:520px; }
-.ea-mid .score{ font-weight:900; font-size:86px; text-align:left; min-width:160px; }
+#ea-scorebug.expanded .ea-time{ font-size:74px; padding:22px 28px; }
+#ea-scorebug.expanded .ea-mid .name{ font-size:72px; }
+#ea-scorebug.expanded .ea-mid .score{ font-size:104px; }
+
+.ea-mid .row{ 
+    display:grid; 
+    grid-template-columns: 180px 48px 1fr minmax(100px, auto); 
+    align-items:center; 
+    column-gap:22px; 
+}
+.ea-mid .name{ font-weight:900; font-size:64px; letter-spacing:.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:300px; } 
+.ea-mid .score{ font-weight:900; font-size:96px; text-align:right; min-width:100px; color:#111; }
+
 .crest{ width:180px; height:180px; object-fit:contain; display:block; }
-.reds{ display:flex; gap:4px; justify-content:flex-start; }
-.rc{ width:22px; height:28px; background:#D32F2F; border-radius:3px; }
+.reds{ display:flex; gap:8px; justify-content:flex-start; align-items: center; }
+.rc{ width:40px; height:44px; background:#D32F2F; border-radius:6px; }
 
 /* DERECHA */
 .ea-right{ display:flex; flex-direction:column; width: var(--right-w); min-width: var(--right-w); border-top-right-radius:10px; border-bottom-right-radius:10px; overflow:hidden; }
@@ -879,107 +906,53 @@ html,body{ margin:0; padding:0; width:var(--canvas-width); height:var(--canvas-h
 .right-row.local{ background: var(--color-local); }
 .right-row.visita{ background: var(--color-visita); }
 
-/* Paneles grandes */
+/* Paneles grandes - Overlays */
 .panel{ background:rgba(0,0,0,.92); border-radius:14px; padding:22px 24px; display:flex; align-items:center; gap:18px; box-shadow:0 10px 24px rgba(0,0,0,.35); margin:14px; font-size:22px; }
 .panel .chip{ font-weight:900; padding:10px 16px; border-radius:10px; letter-spacing:.6px; text-transform:uppercase; }
-.panel .line{ display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
-.team-long{ padding:6px 12px; border-radius:8px; font-weight:900; }
-.score-big{ font-weight:900; font-size:86px; }
-.player-big{ font-weight:800; font-size:44px; }
-.num-big{ font-weight:900; font-size:40px; min-width:48px; text-align:right; }
-.pname-big{ font-weight:800; font-size:40px; }
+.panel .line{ display:flex; align-items:center; gap:24px; flex-wrap:wrap; }
+.team-long{ padding:6px 12px; border-radius:8px; font-weight:900; font-size:32px; }
+.score-big{ font-weight:900; font-size:100px; }
+.player-big{ font-weight:800; font-size:48px; }
+.num-big{ font-weight:900; font-size:44px; min-width:48px; text-align:right; }
+.pname-big{ font-weight:800; font-size:44px; }
 
 /* STATS */
-.stats-icon{ width:144px; height:144px; object-fit:contain; display:inline-block; }
-#stats .stats-track{ flex:1 1 auto; height:36px; border-radius:12px; overflow:hidden; display:flex; margin:12px 0; background:#fff; border:1px solid rgba(0,0,0,.08); }
-#stats .seg{ display:flex; align-items:center; justify-content:center; font-weight:900; line-height:1; font-size:22px; }
+.stats-icon{ width:200px; height:200px; object-fit:contain; display:inline-block; margin-left: 24px; }
+.stats-content{ flex-grow: 1; display:flex; flex-direction: column; }
+#stats .stats-track{ flex:1 1 auto; height:44px; border-radius:12px; overflow:hidden; display:flex; margin:12px 0; background:#fff; border:1px solid rgba(0,0,0,.08); } 
+#stats .seg{ display:flex; align-items:center; justify-content:center; font-weight:900; line-height:1; font-size:26px; } 
 #stats .seg.local{ background: var(--color-local); color: var(--color-text-local); }
 #stats .seg.visita{ background: var(--color-visita); color: var(--color-text-visita); }
-.stats-wrap{ display:flex; align-items:center; gap:18px; }
+.stats-wrap{ display:flex; align-items:center; gap:18px; flex-grow: 1; }
 
 /* Triángulos cambio */
 .tri{ width:0; height:0; }
 .tri-left{ border-top:10px solid transparent; border-bottom:10px solid transparent; border-right:16px solid #00e676; }
 .tri-right{ border-top:10px solid transparent; border-bottom:10px solid transparent; border-left:16px solid #ff5252; }
 .num-big.out{ color:#ff5252; }
-
-@keyframes slideDownIn{ from{opacity:0; transform:translateY(-20px)} to{opacity:1; transform:translateY(0)} }
-.slide-down-in{ animation: slideDownIn .6s cubic-bezier(.25,.46,.45,.94) forwards; }
 </style>
-<script>
-const $ = (id) => document.getElementById(id);
-
-// Reloj en automático
-let lastState = null;
-function fmtClock(ms){ const t=Math.max(0,Math.floor(ms/1000)); const m=Math.floor(t/60), s=t%60; return (m<10?'0':'')+m+':' + (s<10?'0':'')+s; }
-function paintClock(){
-  if(!lastState){ requestAnimationFrame(paintClock); return; }
-  const base = (lastState.base_ms||0) + (lastState.elapsed_ms||0);
-  const live = lastState.running ? Math.max(0, Date.now() - (lastState.start_epoch_ms||0)) : 0;
-  const clk=$('ea-clock'); if(clk) clk.textContent = fmtClock(base + live);
-  requestAnimationFrame(paintClock);
-}
-
-function render(state){
-  // guardar estado y dejar que paintClock pinte el reloj fluido
-  lastState = state;
-
-  // scores y nombres
-  const sl=$('scoreL'); if(sl) sl.textContent=state.scoreL;
-  const sr=$('scoreR'); if(sr) sr.textContent=state.scoreR;
-  const tl=$('teamL'); if(tl) tl.textContent=state.teamL||'';
-  const tr=$('teamR'); if(tr) tr.textContent=state.teamR||'';
-
-  // tarjetas rojas persistentes
-  const rL = document.getElementById('redsL');
-  const rR = document.getElementById('redsR');
-  if (rL) { rL.innerHTML = ''.padStart((state.redL||0), '•').split('•').slice(1).map(()=>'<span class="rc"></span>').join(''); }
-  if (rR) { rR.innerHTML = ''.padStart((state.redR||0), '•').split('•').slice(1).map(()=>'<span class="rc"></span>').join(''); }
-
-  // tiempo añadido (extra)
-  const extraBox = document.getElementById('time-extra');
-  if (extraBox){ const txt = state.extra ? `+${state.extra}'` : ''; extraBox.textContent = txt; extraBox.classList.toggle('show', !!state.extra); }
-
-  // overlay grande y expansión
-  const exp = document.getElementById('expander');
-  const expInner = document.getElementById('expander-inner');
-  const htmlStr = state.overlay_html || '';
-  if (exp && expInner && expInner.dataset.html !== htmlStr) {
-    expInner.innerHTML = htmlStr; expInner.dataset.html = htmlStr;
-  }
-  const open = !!(state.overlay_type);
-  if (exp) exp.classList.toggle('open', open);
-  const bug = document.getElementById('ea-scorebug'); if (bug) bug.classList.toggle('expanded', open);
-}
-
-async function tick(){
-  try{ const res=await fetch('estado.json?ts='+Date.now()); if(!res.ok) return; const state=await res.json(); render(state); }
-  catch(e){ console.error(e); }
-}
-window.addEventListener('DOMContentLoaded', ()=>{ tick(); setInterval(tick, 250); requestAnimationFrame(paintClock); });
-</script>
 </head>
 <body>
 <div class="stage">
   <div id="bug-wrap">
     <div id="bug-outer">
-      <div id="ea-scorebug">
+      <div id="ea-scorebug" class="%%EXPANDED%%">
         <div class="ea-left">
           <div class="ea-tri"><img id="brand" src="%%BRAND%%" alt="Brand" onerror="this.style.display='none'"/></div>
           <div class="ea-comp">CONADEIP</div>
           <div class="ea-time"><span id="ea-clock">%%RELOJ%%</span></div>
-          <div id="time-extra" class="time-extra"></div>
+          <div id="time-extra" class="time-extra%%EXTRA_CLASS%%">%%EXTRA_TXT%%</div>
         </div>
         <div class="ea-mid">
           <div class="row">
             %%CREST_MID_L%%
-            <span class="reds" id="redsL"></span>
+            <span class="reds" id="redsL">%%REDS_L%%</span>
             <span class="name" id="teamL">%%TEAM_L%%</span>
             <span class="score" id="scoreL">%%SCORE_L%%</span>
           </div>
           <div class="row">
             %%CREST_MID_R%%
-            <span class="reds" id="redsR"></span>
+            <span class="reds" id="redsR">%%REDS_R%%</span>
             <span class="name" id="teamR">%%TEAM_R%%</span>
             <span class="score" id="scoreR">%%SCORE_R%%</span>
           </div>
@@ -989,13 +962,19 @@ window.addEventListener('DOMContentLoaded', ()=>{ tick(); setInterval(tick, 250)
           <div class="right-row visita"></div>
         </div>
       </div>
-      <div id="expander"><div id="expander-inner">%%OVERLAY_HTML%%</div></div>
+      <div id="expander" class="%%EXPANDER_CLASS%%"><div id="expander-inner">%%OVERLAY_HTML%%</div></div>
     </div>
   </div>
 </div>
 </body>
 </html>
 """
+            # Armado de chips rojas y extra
+            reds_l_html = "".join("<span class='rc'></span>" for _ in range(int(self.red_local)))
+            reds_r_html = "".join("<span class='rc'></span>" for _ in range(int(self.red_visita)))
+            extra_txt = f"+{int(self.tiempo_anadido_min)}'" if (self.mostrar_extra and self.tiempo_anadido_min>0) else ""
+            extra_class = " show" if extra_txt else ""
+
             html = (html
                 .replace("%%COLOR_LOCAL%%", color_local)
                 .replace("%%COLOR_VISITA%%", color_visita)
@@ -1004,24 +983,121 @@ window.addEventListener('DOMContentLoaded', ()=>{ tick(); setInterval(tick, 250)
                 .replace("%%BRAND%%", brand_png_rel or "")
                 .replace("%%STATSPNG%%", stats_png_rel or "stats.png")
                 .replace("%%RELOJ%%", reloj_txt)
+                .replace("%%EXTRA_TXT%%", extra_txt)
+                .replace("%%EXTRA_CLASS%%", extra_class)
                 .replace("%%CREST_MID_L%%", crestMidL_html)
                 .replace("%%CREST_MID_R%%", crestMidR_html)
+                .replace("%%REDS_L%%", reds_l_html)
+                .replace("%%REDS_R%%", reds_r_html)
                 .replace("%%TEAM_L%%", self.equipo_local.currentText())
                 .replace("%%TEAM_R%%", self.equipo_visita.currentText())
                 .replace("%%SCORE_L%%", self.marc_local.text())
                 .replace("%%SCORE_R%%", self.marc_visita.text())
                 .replace("%%OVERLAY_HTML%%", overlay_html)
+                .replace("%%EXPANDED%%", expanded_class)
+                .replace("%%EXPANDER_CLASS%%", expander_class)
             )
+
+            # --- Añadir script de auto-actualización ---
+            auto_script = """<script>
+async function updateScorebug(){
+  try {
+    const resp = await fetch('estado.json', {cache: 'no-store'});
+    if (!resp.ok) return;
+    const data = await resp.json();
+    // actualizar reloj
+    const clockEl = document.getElementById('ea-clock');
+    if (clockEl && data.clock !== undefined) clockEl.textContent = data.clock;
+    // extra time
+    const timeExtra = document.getElementById('time-extra');
+    if (timeExtra) {
+      if (data.extra && data.extra > 0) {
+        timeExtra.classList.add('show');
+        timeExtra.textContent = '+'+data.extra+"'";
+      } else {
+        timeExtra.classList.remove('show');
+        timeExtra.textContent = '';
+      }
+    }
+    // nombres y marcadores
+    const teamL = document.getElementById('teamL');
+    const teamR = document.getElementById('teamR');
+    const scoreL = document.getElementById('scoreL');
+    const scoreR = document.getElementById('scoreR');
+    if (teamL && data.teamL !== undefined) teamL.textContent = data.teamL;
+    if (teamR && data.teamR !== undefined) teamR.textContent = data.teamR;
+    if (scoreL && data.scoreL !== undefined) scoreL.textContent = data.scoreL;
+    if (scoreR && data.scoreR !== undefined) scoreR.textContent = data.scoreR;
+    // colores
+    if (data.colorL) {
+      document.documentElement.style.setProperty('--color-local', data.colorL);
+    }
+    if (data.colorR) {
+      document.documentElement.style.setProperty('--color-visita', data.colorR);
+    }
+    if (data.colorTextL) {
+      document.documentElement.style.setProperty('--color-text-local', data.colorTextL);
+    }
+    if (data.colorTextR) {
+      document.documentElement.style.setProperty('--color-text-visita', data.colorTextR);
+    }
+    // tarjetas rojas
+    const redsL = document.getElementById('redsL');
+    const redsR = document.getElementById('redsR');
+    if (redsL) {
+      redsL.innerHTML = '';
+      const n = data.redL || 0;
+      for (let i=0; i<n; i++) {
+        const span = document.createElement('span');
+        span.className = 'rc';
+        redsL.appendChild(span);
+      }
+    }
+    if (redsR) {
+      redsR.innerHTML = '';
+      const n = data.redR || 0;
+      for (let i=0; i<n; i++) {
+        const span = document.createElement('span');
+        span.className = 'rc';
+        redsR.appendChild(span);
+      }
+    }
+    // Overlay
+    const expander = document.getElementById('expander');
+    const scorebug = document.getElementById('ea-scorebug');
+    const expInner = document.getElementById('expander-inner');
+    if (expander && scorebug && expInner) {
+      if (data.overlay_html) {
+        expander.classList.add('open');
+        scorebug.classList.add('expanded');
+        expInner.innerHTML = data.overlay_html;
+      } else {
+        expander.classList.remove('open');
+        scorebug.classList.remove('expanded');
+        expInner.innerHTML = '';
+      }
+    }
+  } catch (err) {
+    // error silencioso
+  }
+}
+setInterval(updateScorebug, 500);
+updateScorebug();
+</script>"""
+            if '</body>' in html:
+                html = html.replace('</body>', auto_script + '\n</body>')
+
             if html != getattr(self,'html_prev',None):
                 with open(OUTPUT_HTML,'w',encoding='utf-8') as f:
                     f.write(html)
                 self.html_prev = html
 
-            # Guardar estado JSON (tick del navegador lo lee)
+            # Guardar estado JSON (por si lo quieres usar en otra herramienta)
             state = {
                 "teamL": self.equipo_local.currentText(),
                 "teamR": self.equipo_visita.currentText(),
                 "colorL": color_local, "colorR": color_visita,
+                "colorTextL": color_text_local, "colorTextR": color_text_visita,
                 "scoreL": int(self.marc_local.text()), "scoreR": int(self.marc_visita.text()),
                 "clock": reloj_txt,
                 "extra": int(self.tiempo_anadido_min) if (self.mostrar_extra and self.tiempo_anadido_min>0) else 0,
@@ -1048,6 +1124,33 @@ window.addEventListener('DOMContentLoaded', ()=>{ tick(); setInterval(tick, 250)
         except Exception:
             pass
 
+    # ---------- Copiar HTML ----------
+    def copy_html(self):
+        """
+        Copia el contenido HTML actual de salida.html al portapapeles.
+        """
+        try:
+            with open(OUTPUT_HTML, 'r', encoding='utf-8') as f:
+                html_text = f.read()
+            QApplication.clipboard().setText(html_text)
+            self.notificar("HTML copiado al portapapeles", 2000)
+        except Exception as e:
+            self.notificar(f"Error al copiar HTML: {e}", 3000)
+
+    def copy_link(self):
+        """
+        Copia al portapapeles la URL actual del marcador (HTML servido) si el servidor está activo.
+        """
+        try:
+            if self.http_port:
+                url = f"http://localhost:{self.http_port}/TXT/salida.html"
+                QApplication.clipboard().setText(url)
+                self.notificar(f"URL copiada: {url}", 2500)
+            else:
+                self.notificar("Servidor HTTP no iniciado aún", 3000)
+        except Exception as e:
+            self.notificar(f"Error al copiar URL: {e}", 3000)
+
     # ---------- Cierre seguro ----------
     def _enable_close(self):
         self._allow_close = True
@@ -1056,7 +1159,6 @@ window.addEventListener('DOMContentLoaded', ()=>{ tick(); setInterval(tick, 250)
 
     def closeEvent(self, event):
         if not getattr(self, "_allow_close", False):
-            # Bloquear cierre
             self.notificar("Para cerrar: Ctrl+Shift+Q (se habilita por 5s)", 3000)
             event.ignore()
             return
